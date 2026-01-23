@@ -84,6 +84,7 @@ dependencies = [
     "transformers>=4.57",
     # XTTS
     "num2words>=0.5.14",
+    nemo_text_processing,
 ]
 
 [project.optional-dependencies]
