@@ -33,7 +33,7 @@ from TTS.tts.utils.helpers import generate_path, rand_segments, segment, sequenc
 from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.characters import BaseCharacters, BaseVocabulary, _characters, _pad, _phonemes, _punctuations
-from TTS.tts.utils.text.tokenizer import TTSTokenizer
+# from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment
 from TTS.utils.audio.torch_transforms import spec_to_mel, wav_to_mel, wav_to_spec
 from TTS.utils.samplers import BucketBatchSampler
@@ -1447,6 +1447,13 @@ class Vits(BaseTTS):
         import json
 
         from TTS.tts.utils.text.cleaners import basic_cleaners, uroman_cleaners
+        # checkif config has use_phonemes == True and text_cleaner is None:
+        if config.use_phonemes and config.text_cleaner is None:
+            print("using phoneme input tokenizer2")
+            from TTS.tts.utils.text.tokenizer_phoneme_input2 import TTSTokenizer
+        else:
+            from TTS.tts.utils.text.tokenizer import TTSTokenizer
+            print("using standard tokenizer: TTS.tts.utils.text.tokenizer")
 
         self.disc = None
         # set paths
@@ -1505,6 +1512,14 @@ class Vits(BaseTTS):
             )
 
         ap = AudioProcessor.init_from_config(config)
+        # checkif config has use_phonemes == True and text_cleaner is None:
+        if config.use_phonemes and config.text_cleaner is None:
+            print("using phoneme input tokenizer2")
+            from TTS.tts.utils.text.tokenizer_phoneme_input2 import TTSTokenizer
+        else:
+            from TTS.tts.utils.text.tokenizer import TTSTokenizer
+            print("using standard tokenizer: TTS.tts.utils.text.tokenizer")
+        
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config, samples)
         language_manager = LanguageManager.init_from_config(config)
@@ -1691,6 +1706,104 @@ class VitsCharacters(BaseCharacters):
             is_sorted=True,
         )
 
+class VitsPhonemeCharacters(BaseCharacters):
+    """Characters class for VITS model using only custom phonemes from config.
+    
+    This class uses ONLY the phonemes specified in the config, with no default
+    characters or extra phonemes added. Perfect for custom phoneme-based training.
+    """
+
+    def __init__(
+        self,
+        phonemes: list = None,
+        punctuations: str = "",
+        pad: str = "<PAD>",
+        blank: str = "<BLNK>",
+    ) -> None:
+        """Initialize with custom phonemes only.
+        
+        Args:
+            phonemes: List of phoneme strings to use as vocabulary
+            punctuations: String of punctuation characters (default: empty)
+            pad: Padding token
+            blank: Blank token for CTC
+        """
+        if phonemes is None:
+            phonemes = []
+        
+        # Convert phonemes list to string for BaseCharacters
+        # Each phoneme is treated as a separate character
+        phonemes_str = "".join(phonemes) if isinstance(phonemes, list) else phonemes
+        
+        # Store the original phoneme list for proper vocab creation
+        self._phoneme_list = list(phonemes) if isinstance(phonemes, list) else list(phonemes)
+        
+        super().__init__(
+            characters=phonemes_str,
+            punctuations=punctuations,
+            pad=pad,
+            eos=None,
+            bos=None,
+            blank=blank,
+            is_unique=False,
+            is_sorted=False  # Keep order as specified
+        )
+
+    def _create_vocab(self):
+        """Create vocabulary from phoneme list only."""
+        # Vocab order: [pad] + [punctuations] + [phonemes] + [blank]
+        self._vocab = [self._pad]
+        
+        if self._punctuations:
+            self._vocab += list(self._punctuations)
+        
+        # Add phonemes from the original list (not the joined string)
+        self._vocab += self._phoneme_list
+        
+        # Add blank token at the end
+        self._vocab += [self._blank]
+        
+        # Create mappings
+        self._char_to_id = {char: idx for idx, char in enumerate(self._vocab)}
+        self._id_to_char = {idx: char for idx, char in enumerate(self._vocab)}
+
+    @staticmethod
+    def init_from_config(config: Coqpit):
+        """Initialize from config with custom phonemes."""
+        if config.characters is not None:
+            _pad = config.characters.get("pad", "<PAD>")
+            _blank = config.characters.get("blank", "<BLNK>")
+            _punctuations = config.characters.get("punctuations", "")
+            _phonemes = config.characters.get("phonemes", [])
+            
+            return (
+                VitsPhonemeCharacters(
+                    phonemes=_phonemes,
+                    punctuations=_punctuations,
+                    pad=_pad,
+                    blank=_blank
+                ),
+                config,
+            )
+        
+        # Fallback to empty phoneme list
+        characters = VitsPhonemeCharacters(phonemes=[])
+        new_config = replace(config, characters=characters.to_config())
+        return characters, new_config
+
+    def to_config(self) -> "CharactersConfig":
+        """Convert to config dict."""
+        return CharactersConfig(
+            characters=[],  # Not used
+            punctuations=self._punctuations,
+            pad=self._pad,
+            eos=None,
+            bos=None,
+            blank=self._blank,
+            phonemes=self._phoneme_list,  # Store the actual phoneme list
+            is_unique=False,
+            is_sorted=False,
+        )
 
 class FairseqVocab(BaseVocabulary):
     def __init__(self, vocab: str | os.PathLike[Any]) -> None:

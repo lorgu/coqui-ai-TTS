@@ -15,6 +15,7 @@ from urllib.parse import parse_qs
 
 import torch
 import torchaudio
+from nemo_text_processing.text_normalization.normalize import Normalizer
 
 try:
     from flask import Flask, render_template, render_template_string, request, send_file
@@ -167,6 +168,8 @@ lock = Lock()
 def tts():
     with lock:
         text = request.headers.get("text") or request.values.get("text", "")
+        normalizer = Normalizer(lang="de", input_case="cased")
+        text = normalizer.normalize(text, verbose=True)
         speaker_idx = (
             request.headers.get("speaker-id") or request.values.get("speaker_id", args.speaker_idx)
             if api.is_multi_speaker
@@ -350,8 +353,10 @@ def openai_tts():
         return send_file(audio_buffer, mimetype=mimetype)
 
 
+# def main():
+#     app.run(debug=args.debug, host="::", port=args.port)
 def main():
-    app.run(debug=args.debug, host="::", port=args.port)
+    app.run(debug=args.debug, host="127.0.0.1", port=args.port)
 
 
 if __name__ == "__main__":

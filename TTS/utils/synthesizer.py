@@ -121,9 +121,11 @@ class Synthesizer(nn.Module):
             elif "openvoice" in model_dir:
                 self._load_openvoice_from_dir(dir_or_file, use_cuda=use_cuda)
             else:
-                self._load_tts(dir_or_file, use_cuda=use_cuda)
-
-        if checkpoint_dir is None:
+                self._load_tts_from_dir(model_dir, use_cuda)
+        
+        print("DEBUG: config.characters =", self.tts_config.characters)
+        print("DEBUG type:", type(self.tts_config.characters))
+        if self.checkpoint_dir is None:
             msg = "Need to initialize a TTS or VC model via tts_checkpoint/vc_checkpoint/model_dir"
             raise RuntimeError(msg)
         self.voice_dir = Path(voice_dir) if voice_dir is not None else checkpoint_dir / "voices"
@@ -205,10 +207,37 @@ class Synthesizer(nn.Module):
         if tts_config_path is None:
             tts_config_path = checkpoint_dir / "config.json"
         self.tts_config = load_config(tts_config_path)
-        self.output_sample_rate = self.tts_config.audio.get("output_sample_rate", self.tts_config.audio["sample_rate"])
-        if self.tts_config["use_phonemes"] and self.tts_config["phonemizer"] is None:
-            msg = "Phonemizer is not defined in the TTS config."
-            raise ValueError(msg)
+        self.output_sample_rate = self.tts_config.audio["sample_rate"]
+        from TTS.tts.configs.shared_configs import CharactersConfig
+
+        if self.tts_config.characters is None:
+            print("⚠️  Patching characters config for phoneme input...")
+            self.tts_config.characters = CharactersConfig(
+                characters_class="TTS.tts.models.vits.VitsPhonemeCharacters",
+                vocab_dict=None,
+                pad="<PAD>",
+                eos=None,
+                bos=None,
+                blank="<BLNK>",
+                characters=[],  # optional, can fill with graphemes if needed
+                punctuations="",
+                phonemes=[
+                    "a", "aː", "b", "d", "e", "eː", "f", "h", "i", "iː", "j", "k", "l", "m", "n",
+                    "o", "oː", "p", "r", "s", "sː", "t", "u", "uː", "v", "x", "y", "z",
+                    "~", "ç", "ð", "ø", "øː", "ŋ", "œ", "œː", "ɐ", "ɐː", "ɑ", "ɑː", "ɒː", "ɔ", "ɔː",
+                    "ə", "ɛ", "ɛː", "ɡ", "ɣ", "ɪ", "ɶ", "ʀ", "ʃ", "ʊ", "ʊː", "ʎ", "ʏ", "ʏː", "ʒ", "ʔ", "β", "χ"
+                ],
+                is_unique=True,
+                is_sorted=True,
+            )
+        if self.tts_config.use_phonemes:
+            if self.tts_config.phonemizer is None:
+                # Allow None phonemizer for pre-phonemized input
+                print("⚠️  Warning: phonemizer is None. Input text must be phonemes (space-separated phonemes).")
+                # Don't raise error, just warn
+            else:
+                # Initialize phonemizer normally
+                pass
 
         self.tts_model = setup_tts_model(config=self.tts_config)
 

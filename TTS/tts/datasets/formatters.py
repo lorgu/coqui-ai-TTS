@@ -367,6 +367,39 @@ def thorsten(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
 
+def wass(root_path, meta_file, **kwargs):
+    items = []
+    txt_file = os.path.join(root_path, meta_file)
+
+    with open(txt_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+
+            cols = line.split("|")
+            if len(cols) != 2:
+                raise ValueError(f"Expected 2 columns (id|text), got: {cols}")
+
+            utt_id, text = cols
+
+            # Build wav path
+            wav_file = os.path.join(root_path, "aridialect_wav_22050", utt_id + ".wav")
+
+            # Speaker = FIRST part before "_"
+            # e.g. "hoi_at_nordwind_001" → "hoi_at"
+            speaker_name = utt_id.split("_", 2)
+            speaker_name = "_".join(speaker_name[:2])
+            # resulting speaker names: hpo_at, spo_at, hga_at, joe_at, ...
+
+            items.append({
+                "text": text,
+                "audio_file": wav_file,
+                "speaker_name": speaker_name,
+                "root_path": root_path
+            })
+
+    return items
 
 def sam_accenture(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalize the Sam Accenture Non-Binary Voice meta data file to TTS format.
@@ -1036,3 +1069,4 @@ register_formatter("baker", baker)
 register_formatter("kokoro", kokoro)
 register_formatter("kss", kss)
 register_formatter("bel_tts_formatter", bel_tts_formatter)
+register_formatter("wass", wass)

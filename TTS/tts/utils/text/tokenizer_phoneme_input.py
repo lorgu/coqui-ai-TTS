@@ -2,8 +2,6 @@ import logging
 from collections.abc import Callable
 from typing import Union
 
-import ipdb
-
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.characters import BaseCharacters, Graphemes, IPAPhonemes
 from TTS.tts.utils.text.phonemizers import DEF_LANG_TO_PHONEMIZER, get_phonemizer_by_name
@@ -68,27 +66,12 @@ class TTSTokenizer:
         self.pad_id = self.characters.char_to_id(self.characters.pad) if self.characters.pad else None
         self.blank_id = self.characters.char_to_id(self.characters.blank) if self.characters.blank else None
 
-    def encode(self, text: str) -> list[int]:
-        """Encodes a string of text as a sequence of IDs."""
-        token_ids = []
-        for char in text:
-            try:
-                idx = self.characters.char_to_id(char)
-                token_ids.append(idx)
-            except KeyError:
-                # discard but store not found characters
-                if char not in self.not_found_characters:
-                    self.not_found_characters.append(char)
-                    logger.warning(text)
-                    logger.warning("Character %s not found in the vocabulary. Discarding it.", repr(char))
-        return token_ids
-
     def decode(self, token_ids: list[int]) -> str:
         """Decodes a sequence of IDs to a string of text."""
-        text = ""
-        for token_id in token_ids:
-            text += self.characters.id_to_char(token_id)
-        return text
+        text_list = [self.characters.id_to_char(token_id) for token_id in token_ids]
+        if self.use_phonemes:
+            return " ".join(text_list)
+        return "".join(text_list)
 
     def text_to_ids(self, text: str, language: str | None = None) -> list[int]:  # pylint: disable=unused-argument
         """Converts a string of text to a sequence of token IDs.
@@ -114,16 +97,33 @@ class TTSTokenizer:
         if self.text_cleaner is not None:
             text = self.text_cleaner(text)
             logger.debug("Cleaned text: %s", text)
-        if self.use_phonemes:
-            text = self.phonemizer.phonemize(text, separator="", language=language)
             print(text)
-            logger.debug("Phonemes: %s", text)
-        text = self.encode(text)
+        else:
+            print(text)
+        if self.use_phonemes:
+            tokens = text.strip().split(" ")
+            logger.debug("Phonemes: %s", tokens)
+        else:
+            tokens = list(text)
+
+        # convert tokens to IDs
+        token_ids = []
+        for char in tokens:
+            try:
+                idx = self.characters.char_to_id(char)
+                token_ids.append(idx)
+            except KeyError:
+                # discard but store not found characters
+                if char not in self.not_found_characters:
+                    self.not_found_characters.append(char)
+                    logger.warning(text)
+                    logger.warning("Character %s not found in the vocabulary. Discarding it.", repr(char))
+
         if self.add_blank:
-            text = self.intersperse_blank_char(text)
+            token_ids = self.intersperse_blank_char(token_ids, True)
         if self.use_eos_bos:
-            text = self.pad_with_bos_eos(text)
-        return text
+            token_ids = self.pad_with_bos_eos(token_ids)
+        return token_ids
 
     def ids_to_text(self, id_sequence: list[int]) -> str:
         """Converts a sequence of token IDs to a string of text."""
@@ -133,9 +133,13 @@ class TTSTokenizer:
         """Pads a sequence with the special BOS and EOS characters."""
         return [self.characters.bos_id] + list(char_sequence) + [self.characters.eos_id]
 
-    def intersperse_blank_char(self, char_sequence: list[str]):
-        """Intersperses the blank character between characters in a sequence."""
-        result = [self.characters.blank_id] * (len(char_sequence) * 2 + 1)
+    def intersperse_blank_char(self, char_sequence: list[str], use_blank_char: bool = False):
+        """Intersperses the blank character between characters in a sequence.
+
+        Use the ```blank``` character if defined else use the ```pad``` character.
+        """
+        char_to_use = self.characters.blank_id if use_blank_char else self.characters.pad
+        result = [char_to_use] * (len(char_sequence) * 2 + 1)
         result[1::2] = char_sequence
         return result
 
