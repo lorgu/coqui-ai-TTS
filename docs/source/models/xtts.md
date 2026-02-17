@@ -403,7 +403,7 @@ torchaudio.save(OUTPUT_WAV_PATH, torch.tensor(out["wav"]).unsqueeze(0), 24000)
 
 ## XttsArgs
 ```{eval-rst}
-.. autoclass:: TTS.tts.models.xtts.XttsArgs
+.. autoclass:: TTS.tts.configs.xtts_config.XttsArgs
     :members:
 ```
 

@@ -5,8 +5,8 @@ import torch
 
 from tests import assert_parameters_change, assert_parameters_equal
 from tests.tts_tests.test_vits import _create_inputs
-from TTS.tts.configs.vits_config import VitsConfig
-from TTS.tts.models.vits import Vits, VitsArgs, VitsAudioConfig
+from TTS.tts.configs.vits_config import VitsArgs, VitsAudioConfig, VitsConfig
+from TTS.tts.models.vits import Vits
 
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()

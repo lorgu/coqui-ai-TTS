@@ -2,6 +2,7 @@
 import os
 import shutil
 
+import huggingface_hub.constants
 import pytest
 
 from tests import get_tests_data_path, run_main
@@ -25,9 +26,10 @@ BROKEN_MODELS = [
 
 
 @pytest.fixture(autouse=True)
-def run_around_tests(tmp_path):
+def run_around_tests(monkeypatch, tmp_path):
     """Download models to a temp folder and delete it afterwards."""
-    os.environ["TTS_HOME"] = str(tmp_path)
+    monkeypatch.setattr(huggingface_hub.constants, "HF_HUB_CACHE", str(tmp_path))
+    monkeypatch.setenv("TTS_HOME", str(tmp_path))
     yield
     shutil.rmtree(tmp_path)
 

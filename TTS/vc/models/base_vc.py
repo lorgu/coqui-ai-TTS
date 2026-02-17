@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, cast
 
 import torch
 import torch.distributed as dist
@@ -28,10 +28,11 @@ class BaseVC(BaseTrainerModel):
     """
 
     MODEL_TYPE = "vc"
+    config: BaseVCConfig
 
     def __init__(self, config: Coqpit, ap: AudioProcessor | None = None) -> None:
         super().__init__()
-        self.config = config
+        self.config = cast(BaseVCConfig, config)
         self.ap = ap
         self._set_model_args()
 

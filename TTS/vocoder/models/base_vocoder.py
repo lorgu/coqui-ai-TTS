@@ -1,3 +1,5 @@
+from typing import cast
+
 from TTS.model import BaseTrainerModel
 from TTS.vocoder.configs.shared_configs import BaseVocoderConfig
 
@@ -18,10 +20,11 @@ class BaseVocoder(BaseTrainerModel):
     """
 
     MODEL_TYPE = "vocoder"
+    config: BaseVocoderConfig
 
     def __init__(self, config):
         super().__init__()
-        self.config = config
+        self.config = cast(BaseVocoderConfig, config)
         self._set_model_args()
 
     def _set_model_args(self) -> None:

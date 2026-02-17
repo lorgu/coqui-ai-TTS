@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from torch import nn
+from trainer.io import get_user_data_dir
 
 from TTS.config import load_config
 from TTS.utils.manage import ModelManager
@@ -81,6 +82,7 @@ class TTS(nn.Module):
         self.synthesizer: Synthesizer | None = None
         self.voice_converter: Synthesizer | None = None
         self.model_name = ""
+        self.voice_dir = None
 
         self.vocoder_path = vocoder_path
         self.vocoder_config_path = vocoder_config_path
@@ -93,6 +95,7 @@ class TTS(nn.Module):
             warnings.warn("`gpu` will be deprecated. Please use `tts.to(device)` instead.")
 
         if model_name is not None and len(model_name) > 0:
+            self.voice_dir = get_user_data_dir("tts") / model_name / "voices"
             if "tts_models" in model_name:
                 self.load_tts_model_by_name(model_name, vocoder_name, gpu=gpu)
             elif "voice_conversion_models" in model_name:
@@ -158,22 +161,10 @@ class TTS(nn.Module):
 
     def download_model_by_name(
         self, model_name: str, vocoder_name: str | None = None
-    ) -> tuple[Path | None, Path | None, Path | None, Path | None, Path | None]:
+    ) -> tuple[Path | None, Path | None, Path | None, Path | None]:
         model_path, config_path, model_item = self.manager.download_model(model_name)
-        if (
-            "fairseq" in model_name
-            or "openvoice" in model_name
-            or (
-                model_item is not None
-                and isinstance(model_item["model_url"], list)
-                and len(model_item["model_url"]) > 2
-            )
-        ):
-            # return model directory if there are multiple files
-            # we assume that the model knows how to load itself
-            return None, None, None, None, model_path
         if model_item.get("default_vocoder") is None:
-            return model_path, config_path, None, None, None
+            return model_path, config_path, None, None
         if vocoder_name is None:
             vocoder_name = model_item["default_vocoder"]
         vocoder_path, vocoder_config_path = None, None
@@ -183,7 +174,7 @@ class TTS(nn.Module):
             vocoder_config_path = self.vocoder_config_path
         if vocoder_path is None or vocoder_config_path is None:
             vocoder_path, vocoder_config_path, _ = self.manager.download_model(vocoder_name)
-        return model_path, config_path, vocoder_path, vocoder_config_path, None
+        return model_path, config_path, vocoder_path, vocoder_config_path
 
     def load_model_by_name(self, model_name: str, vocoder_name: str | None = None, *, gpu: bool = False) -> None:
         """Load one of the 🐸TTS models by name.
@@ -202,7 +193,7 @@ class TTS(nn.Module):
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
         self.model_name = model_name
-        model_path, config_path, vocoder_path, vocoder_config_path, model_dir = self.download_model_by_name(
+        model_path, config_path, vocoder_path, vocoder_config_path = self.download_model_by_name(
             model_name, vocoder_name
         )
         self.voice_converter = Synthesizer(
@@ -210,7 +201,7 @@ class TTS(nn.Module):
             vc_config=config_path,
             vocoder_checkpoint=vocoder_path,
             vocoder_config=vocoder_config_path,
-            model_dir=model_dir,
+            voice_dir=self.voice_dir,
             use_cuda=gpu,
         )
 
@@ -225,7 +216,7 @@ class TTS(nn.Module):
         """
         self.model_name = model_name
 
-        model_path, config_path, vocoder_path, vocoder_config_path, model_dir = self.download_model_by_name(
+        model_path, config_path, vocoder_path, vocoder_config_path = self.download_model_by_name(
             model_name, vocoder_name
         )
 
@@ -240,7 +231,7 @@ class TTS(nn.Module):
             vocoder_config=vocoder_config_path,
             encoder_checkpoint=self.encoder_path,
             encoder_config=self.encoder_config_path,
-            model_dir=model_dir,
+            voice_dir=self.voice_dir,
             use_cuda=gpu,
         )
 
@@ -266,6 +257,7 @@ class TTS(nn.Module):
             encoder_config=self.encoder_config_path,
             use_cuda=gpu,
         )
+        self.voice_dir = self.synthesizer.voice_dir
 
     def _check_arguments(
         self,

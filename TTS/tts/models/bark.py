@@ -1,7 +1,6 @@
 import logging
 import os
 import warnings
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +10,7 @@ import torchaudio
 from coqpit import Coqpit
 from transformers import AutoProcessor, BertTokenizer, EncodecModel
 
+from TTS.tts.configs.bark_config import BarkConfig
 from TTS.tts.configs.shared_configs import BaseTTSConfig
 from TTS.tts.layers.bark.hubert.hubert_manager import HubertManager
 from TTS.tts.layers.bark.hubert.kmeans_hubert import CustomHubert
@@ -34,13 +34,9 @@ from TTS.utils.generic_utils import (
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class BarkAudioConfig(Coqpit):
-    sample_rate: int = 24000
-    output_sample_rate: int = 24000
-
-
 class Bark(BaseTTS):
+    config: BarkConfig
+
     def __init__(
         self,
         config: Coqpit,

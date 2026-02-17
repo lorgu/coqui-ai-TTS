@@ -52,7 +52,6 @@ class Synthesizer(nn.Module):
         encoder_config: str | os.PathLike[Any] | None = None,
         vc_checkpoint: str | os.PathLike[Any] | None = None,
         vc_config: str | os.PathLike[Any] | None = None,
-        model_dir: str | os.PathLike[Any] | None = None,
         voice_dir: str | os.PathLike[Any] | None = None,
         use_cuda: bool = False,
     ) -> None:
@@ -91,7 +90,6 @@ class Synthesizer(nn.Module):
         self.encoder_config = optional_to_str(encoder_config)
         self.vc_checkpoint = optional_to_str(vc_checkpoint)
         self.vc_config = optional_to_str(vc_config)
-        model_dir = optional_to_str(model_dir)
 
         self.tts_model: BaseTTS | None = None
         self.vocoder_model: BaseVocoder | None = None
@@ -104,33 +102,26 @@ class Synthesizer(nn.Module):
         checkpoint_dir = None
         self.checkpoint_dir = None
         if tts_checkpoint:
-            self._load_tts(self.tts_checkpoint, self.tts_config_path, use_cuda=use_cuda)
-            checkpoint_dir = self.tts_checkpoint.parent
-            self.checkpoint_dir = checkpoint_dir  # <-- add this
+            if "fairseq" in str(self.tts_checkpoint):
+                self._load_fairseq(self.tts_checkpoint, use_cuda=use_cuda)
+            else:
+                self._load_tts(self.tts_checkpoint, self.tts_config_path, use_cuda=use_cuda)
+            checkpoint_dir = self.tts_checkpoint if self.tts_checkpoint.is_dir() else self.tts_checkpoint.parent
+            self.checkpoint_dir = checkpoint_dir
 
-        if vc_checkpoint and model_dir == "":
-            self._load_vc(self.vc_checkpoint, self.vc_config, use_cuda=use_cuda)
+        if vc_checkpoint:
+            if "OpenVoice" in self.vc_checkpoint:
+                self._load_openvoice(Path(vc_checkpoint), use_cuda=use_cuda)
+            else:
+                self._load_vc(self.vc_checkpoint, self.vc_config, use_cuda=use_cuda)
             checkpoint_dir = Path(self.vc_checkpoint).parent
             self.checkpoint_dir = checkpoint_dir  # <-- add this
 
         if vocoder_checkpoint:
             self._load_vocoder(self.vocoder_checkpoint, self.vocoder_config, use_cuda=use_cuda)
 
-        if model_dir:
-            dir_or_file = Path(model_dir)
-            checkpoint_dir = dir_or_file if dir_or_file.is_dir() else dir_or_file.parent
-            self.checkpoint_dir = checkpoint_dir  # <-- add this
-            if "fairseq" in model_dir:
-                self._load_fairseq_from_dir(model_dir, use_cuda=use_cuda)
-            elif "openvoice" in model_dir:
-                self._load_openvoice_from_dir(dir_or_file, use_cuda=use_cuda)
-            else:
-                self._load_tts_from_dir(model_dir, use_cuda)
-
-        print("DEBUG: config.characters =", self.tts_config.characters)
-        print("DEBUG type:", type(self.tts_config.characters))
-        if self.checkpoint_dir is None:
-            msg = "Need to initialize a TTS or VC model via tts_checkpoint/vc_checkpoint/model_dir"
+        if checkpoint_dir is None:
+            msg = "Need to initialize a TTS or VC model via tts_checkpoint/vc_checkpoint"
             raise RuntimeError(msg)
         self.voice_dir = Path(voice_dir) if voice_dir is not None else checkpoint_dir / "voices"
 
@@ -170,7 +161,7 @@ class Synthesizer(nn.Module):
         if use_cuda:
             self.vc_model.cuda()
 
-    def _load_fairseq_from_dir(self, model_dir: str, *, use_cuda: bool) -> None:
+    def _load_fairseq(self, checkpoint_path: Path, *, use_cuda: bool) -> None:
         """Load the fairseq model from a directory.
 
         We assume it is VITS and the model knows how to load itself from the
@@ -178,17 +169,16 @@ class Synthesizer(nn.Module):
         """
         self.tts_config = VitsConfig()
         self.tts_model = Vits.init_from_config(self.tts_config)
-        self.tts_model.load_fairseq_checkpoint(self.tts_config, checkpoint_dir=model_dir, eval=True)
+        self.tts_model.load_fairseq_checkpoint(self.tts_config, checkpoint_path, eval=True)
         self.tts_config = self.tts_model.config
         self.output_sample_rate = self.tts_config.audio["sample_rate"]
         if use_cuda:
             self.tts_model.cuda()
 
-    def _load_openvoice_from_dir(self, checkpoint: Path, *, use_cuda: bool) -> None:
-        """Load the OpenVoice model from a directory.
+    def _load_openvoice(self, checkpoint: Path, *, use_cuda: bool) -> None:
+        """Load the OpenVoice model from a checkpoint file.
 
-        We assume the model knows how to load itself from the directory and
-        there is a config.json file in the directory.
+        We assume there is a config.json file in the same directory.
         """
         self.vc_config = OpenVoiceConfig()
         self.vc_model = OpenVoice.init_from_config(self.vc_config)

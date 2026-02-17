@@ -1,9 +1,11 @@
 from typing import Any
 
 import torch
+from coqpit import Coqpit
 from torch import nn
 from trainer.trainer_utils import get_optimizer, get_scheduler
 
+from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.tts.layers.tacotron.capacitron_layers import CapacitronVAE
 from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.tacotron.tacotron2 import Decoder, Encoder, Postnet
@@ -40,9 +42,11 @@ class Tacotron2(BaseTacotron):
             Speaker manager for multi-speaker training. Uuse only for multi-speaker training. Defaults to None.
     """
 
+    config: Tacotron2Config
+
     def __init__(
         self,
-        config: "Tacotron2Config",
+        config: Coqpit,
         ap: "AudioProcessor" = None,
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,

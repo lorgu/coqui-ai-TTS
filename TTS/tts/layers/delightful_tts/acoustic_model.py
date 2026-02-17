@@ -8,6 +8,7 @@ from coqpit import Coqpit
 from monotonic_alignment_search import maximum_path
 from torch import nn
 
+from TTS.tts.configs.delightful_tts_config import DelightfulTtsArgs
 from TTS.tts.layers.delightful_tts.conformer import Conformer
 from TTS.tts.layers.delightful_tts.encoders import (
     PhonemeLevelProsodyEncoder,
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 class AcousticModel(torch.nn.Module):
     def __init__(
         self,
-        args: "ModelArgs",
+        args: DelightfulTtsArgs,
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: "SpeakerManager" = None,
     ):

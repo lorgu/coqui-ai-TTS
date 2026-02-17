@@ -5,8 +5,9 @@ from trainer import Trainer, TrainerArgs
 from TTS.bin.compute_attention_masks import compute_attention_masks
 from TTS.config import BaseAudioConfig, BaseDatasetConfig
 from TTS.tts.configs.fast_speech_config import FastSpeechConfig
+from TTS.tts.configs.forward_tts_config import ForwardTTSArgs
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.forward_tts import ForwardTTS, ForwardTTSArgs
+from TTS.tts.models.forward_tts import ForwardTTS
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.manage import ModelManager

@@ -117,6 +117,8 @@ class OpenVoice(CloningMixin, BaseVC):
     October 2023, serving as the backend of MyShell.
     """
 
+    config: OpenVoiceConfig
+
     def __init__(self, config: Coqpit) -> None:
         super().__init__(config)
 

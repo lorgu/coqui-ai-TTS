@@ -343,7 +343,6 @@ def main(arg_list: list[str] | None = None) -> None:
         encoder_config_path = None
         vc_path = None
         vc_config_path = None
-        model_dir = None
 
         # 0) Print version number
         if args.version:

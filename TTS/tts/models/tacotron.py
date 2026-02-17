@@ -1,6 +1,7 @@
 from typing import Any
 
 import torch
+from coqpit import Coqpit
 from torch import nn
 from trainer.trainer_utils import get_optimizer, get_scheduler
 
@@ -28,7 +29,7 @@ class Tacotron(BaseTacotron):
 
     def __init__(
         self,
-        config: "TacotronConfig",
+        config: Coqpit,
         ap: "AudioProcessor" = None,
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,

@@ -7,12 +7,8 @@ from trainer.logging.tensorboard_logger import TensorboardLogger
 from tests import assertHasAttr, assertHasNotAttr, get_tests_data_path, get_tests_input_path, get_tests_output_path
 from TTS.config import load_config
 from TTS.encoder.utils.generic_utils import setup_encoder_model
-from TTS.tts.configs.vits_config import VitsConfig
-from TTS.tts.models.vits import (
-    Vits,
-    VitsArgs,
-    load_audio,
-)
+from TTS.tts.configs.vits_config import VitsArgs, VitsConfig
+from TTS.tts.models.vits import Vits, load_audio
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio.torch_transforms import amp_to_db, db_to_amp, spec_to_mel, wav_to_mel, wav_to_spec
 

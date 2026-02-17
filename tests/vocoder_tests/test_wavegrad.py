@@ -2,8 +2,8 @@ import numpy as np
 import torch
 from torch import optim
 
-from TTS.vocoder.configs import WavegradConfig
-from TTS.vocoder.models.wavegrad import Wavegrad, WavegradArgs
+from TTS.vocoder.configs import WavegradArgs, WavegradConfig
+from TTS.vocoder.models.wavegrad import Wavegrad
 
 
 def test_train_step(device: torch.device):

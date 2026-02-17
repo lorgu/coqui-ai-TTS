@@ -7,12 +7,16 @@ from coqpit import Coqpit
 from trainer import TrainerModel
 from trainer.io import load_fsspec
 
+from TTS.config.shared_configs import BaseTrainingConfig
+
 
 class BaseTrainerModel(TrainerModel):
     """BaseTrainerModel model expanding TrainerModel with required functions by 🐸TTS.
 
     Every new Coqui model must inherit it.
     """
+
+    config: BaseTrainingConfig
 
     @staticmethod
     @abstractmethod

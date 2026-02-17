@@ -57,9 +57,11 @@ class GlowTTS(BaseTTS):
         >>> model = GlowTTS.init_from_config(config)
     """
 
+    config: GlowTTSConfig
+
     def __init__(
         self,
-        config: GlowTTSConfig,
+        config: Coqpit,
         ap: "AudioProcessor" = None,
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,
@@ -68,7 +70,6 @@ class GlowTTS(BaseTTS):
 
         # pass all config fields to `self`
         # for fewer code change
-        self.config = config
         for key in config:
             setattr(self, key, config[key])
 

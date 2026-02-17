@@ -1,7 +1,7 @@
 import logging
 import os
 import random
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import torch
 import torch.distributed as dist
@@ -38,6 +38,7 @@ class BaseTTS(CloningMixin, BaseTrainerModel):
     """
 
     MODEL_TYPE = "tts"
+    config: BaseTTSConfig
 
     def __init__(
         self,
@@ -48,7 +49,7 @@ class BaseTTS(CloningMixin, BaseTrainerModel):
         language_manager: LanguageManager | None = None,
     ):
         super().__init__()
-        self.config = config
+        self.config = cast(BaseTTSConfig, config)
         self.ap = ap
         self.tokenizer = tokenizer
         self.speaker_manager = speaker_manager

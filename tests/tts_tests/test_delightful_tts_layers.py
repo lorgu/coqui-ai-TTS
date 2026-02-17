@@ -1,8 +1,7 @@
 import torch
 
-from TTS.tts.configs.delightful_tts_config import DelightfulTTSConfig
+from TTS.tts.configs.delightful_tts_config import DelightfulTtsArgs, DelightfulTTSConfig, VocoderConfig
 from TTS.tts.layers.delightful_tts.acoustic_model import AcousticModel
-from TTS.tts.models.delightful_tts import DelightfulTtsArgs, VocoderConfig
 from TTS.tts.utils.helpers import rand_segments
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator

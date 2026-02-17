@@ -259,6 +259,8 @@ class FreeVC(CloningMixin, BaseVC):
         >>> model = FreeVC(config)
     """
 
+    config: FreeVCConfig
+
     def __init__(self, config: Coqpit):
         super().__init__(config)
 
