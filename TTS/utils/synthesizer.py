@@ -102,13 +102,16 @@ class Synthesizer(nn.Module):
             assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
 
         checkpoint_dir = None
+        self.checkpoint_dir = None
         if tts_checkpoint:
             self._load_tts(self.tts_checkpoint, self.tts_config_path, use_cuda=use_cuda)
             checkpoint_dir = self.tts_checkpoint.parent
+            self.checkpoint_dir = checkpoint_dir  # <-- add this
 
         if vc_checkpoint and model_dir == "":
             self._load_vc(self.vc_checkpoint, self.vc_config, use_cuda=use_cuda)
             checkpoint_dir = Path(self.vc_checkpoint).parent
+            self.checkpoint_dir = checkpoint_dir  # <-- add this
 
         if vocoder_checkpoint:
             self._load_vocoder(self.vocoder_checkpoint, self.vocoder_config, use_cuda=use_cuda)
@@ -116,13 +119,14 @@ class Synthesizer(nn.Module):
         if model_dir:
             dir_or_file = Path(model_dir)
             checkpoint_dir = dir_or_file if dir_or_file.is_dir() else dir_or_file.parent
+            self.checkpoint_dir = checkpoint_dir  # <-- add this
             if "fairseq" in model_dir:
                 self._load_fairseq_from_dir(model_dir, use_cuda=use_cuda)
             elif "openvoice" in model_dir:
                 self._load_openvoice_from_dir(dir_or_file, use_cuda=use_cuda)
             else:
                 self._load_tts_from_dir(model_dir, use_cuda)
-        
+
         print("DEBUG: config.characters =", self.tts_config.characters)
         print("DEBUG type:", type(self.tts_config.characters))
         if self.checkpoint_dir is None:
